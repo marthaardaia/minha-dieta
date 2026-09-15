@@ -1,69 +1,145 @@
-import Image from "next/image";
+import { prisma } from '@/lib/prisma'
+import { markWater, markMeal } from '@/app/actions'
+import { format } from 'date-fns'
+import { Check, Info, Droplet, Coffee, Utensils, Moon } from 'lucide-react'
 
-export default function Home() {
+export const dynamic = 'force-dynamic'
+
+export default async function Home() {
+  const today = format(new Date(), 'yyyy-MM-dd')
+  
+  const waterLogs = await prisma.waterLog.findMany({
+    where: { date: today }
+  })
+  
+  const mealLogs = await prisma.mealLog.findMany({
+    where: { date: today }
+  })
+
+  const waterSlots = ['06:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
+  const mealSlots = [
+    { type: 'Desjejum (07:00)', icon: Coffee, required: true },
+    { type: 'Lanche Manhã', icon: Utensils, required: false },
+    { type: 'Almoço (12:00)', icon: Utensils, required: true },
+    { type: 'Lanche Tarde', icon: Utensils, required: false },
+    { type: 'Jantar (18:00)', icon: Moon, required: true }
+  ]
+
+  const latestMenu = await prisma.weeklyMenu.findFirst({
+    orderBy: { createdAt: 'desc' },
+    include: { meals: true }
+  })
+  
+  const currentDayOfWeek = new Date().getDay()
+  const todaysMeals = latestMenu?.meals.filter(m => m.dayOfWeek === currentDayOfWeek) || []
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="space-y-6">
+      
+      {/* Alerta da Nutri */}
+      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <Info className="h-5 w-5 text-yellow-400" />
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-yellow-700">
+              <strong>Lembrete Diário:</strong> 1 colher de sopa de gérmen de trigo na comida e 1 comprimido de levedo de cerveja 30 minutos antes das refeições principais.
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {/* Checklist de Água */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-blue-600">
+          <Droplet />
+          Hidratação (450ml por copo)
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {waterSlots.map(slot => {
+            const log = waterLogs.find(l => l.timeSlot === slot)
+            const isDone = log?.consumed ?? false
+
+            return (
+              <div key={slot} className={`p-3 rounded-lg border flex flex-col items-center gap-2 transition ${isDone ? 'bg-blue-100 border-blue-300' : 'bg-gray-50 border-gray-200'}`}>
+                <span className="font-semibold text-gray-700">{slot}</span>
+                <form action={async () => {
+                  'use server'
+                  await markWater(today, slot, !isDone)
+                }}>
+                  <button className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${isDone ? 'bg-blue-500' : 'bg-gray-300 hover:bg-gray-400'}`}>
+                    <Check size={20} />
+                  </button>
+                </form>
+              </div>
+            )
+          })}
         </div>
-      </main>
+      </div>
+
+      {/* Checklist de Refeições */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-emerald-600">
+          <Utensils />
+          Refeições de Hoje
+        </h2>
+        <div className="space-y-4">
+          {mealSlots.map(slot => {
+            const log = mealLogs.find(l => l.mealType === slot.type)
+            const isDone = log?.consumed ?? false
+            const justification = log?.justification ?? ''
+            
+            // Procura no cardápio gerado algo que lembre o tipo da refeição
+            const plannedMeal = todaysMeals.find(m => slot.type.includes(m.mealType))
+
+            return (
+              <div key={slot.type} className={`p-4 rounded-lg border ${isDone ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex flex-col md:flex-row md:items-start justify-between mb-2 gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <slot.icon className={isDone ? 'text-emerald-500' : 'text-gray-400'} size={20} />
+                      <span className="font-semibold text-gray-800">{slot.type}</span>
+                      {!slot.required && <span className="text-xs text-gray-400 font-normal">(Opcional)</span>}
+                    </div>
+                    {plannedMeal && (
+                      <p className="text-sm text-gray-600 bg-white p-2 rounded border border-gray-100">
+                        <strong>Cardápio:</strong> {plannedMeal.recipeText}
+                      </p>
+                    )}
+                  </div>
+                  <form action={async () => {
+                    'use server'
+                    await markMeal(today, slot.type, !isDone, justification)
+                  }}>
+                    <button className={`w-full md:w-auto px-4 py-2 rounded-md text-white font-medium text-sm transition ${isDone ? 'bg-emerald-500' : 'bg-gray-300 hover:bg-gray-400'}`}>
+                      {isDone ? 'Feito' : 'Marcar'}
+                    </button>
+                  </form>
+                </div>
+                
+                <form action={async (formData) => {
+                  'use server'
+                  const just = formData.get('justification') as string
+                  await markMeal(today, slot.type, isDone, just)
+                }} className="mt-2 flex gap-2">
+                  <input 
+                    type="text" 
+                    name="justification" 
+                    defaultValue={justification}
+                    placeholder="Imprevisto? Justifique o atraso ou alteração..." 
+                    className="flex-1 text-sm border border-gray-300 rounded-md p-2 bg-white"
+                  />
+                  <button type="submit" className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 rounded-md">
+                    Salvar
+                  </button>
+                </form>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
     </div>
-  );
+  )
 }

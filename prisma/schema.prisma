@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Ingredient {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  category    String
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model WeeklyMenu {
+  id        Int      @id @default(autoincrement())
+  startDate DateTime
+  endDate   DateTime
+  meals     WeeklyMeal[]
+  createdAt DateTime @default(now())
+}
+
+model WeeklyMeal {
+  id           Int      @id @default(autoincrement())
+  menuId       Int
+  menu         WeeklyMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  dayOfWeek    Int
+  mealType     String
+  recipeText   String
+  createdAt    DateTime @default(now())
+}
+
+model WaterLog {
+  id            Int      @id @default(autoincrement())
+  date          String
+  timeSlot      String
+  consumed      Boolean  @default(false)
+  justification String?
+  createdAt     DateTime @default(now())
+
+  @@unique([date, timeSlot])
+}
+
+model MealLog {
+  id            Int      @id @default(autoincrement())
+  date          String
+  mealType      String
+  consumed      Boolean  @default(false)
+  justification String?
+  createdAt     DateTime @default(now())
+
+  @@unique([date, mealType])
+}
+
+// === NOVAS FUNCIONALIDADES ===
+
+model ShoppingItem {
+  id          Int      @id @default(autoincrement())
+  name        String
+  isBought    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model WeightLog {
+  id          Int      @id @default(autoincrement())
+  date        String   @unique
+  weight      Float
+  createdAt   DateTime @default(now())
+}
+
+model FavoriteRecipe {
+  id          Int      @id @default(autoincrement())
+  name        String
+  mealType    String
+  recipeText  String
+  createdAt   DateTime @default(now())
+}
