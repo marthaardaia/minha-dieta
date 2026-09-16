@@ -15,6 +15,22 @@ export default async function EvolucaoPage() {
     take: 30
   })
 
+  const allMenus = await prisma.weeklyMenu.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { meals: true }
+  })
+
+  const getPlannedMeal = (logDateStr: string, mealType: string) => {
+    const logDate = new Date(logDateStr + 'T12:00:00Z')
+    const endOfDay = new Date(logDateStr + 'T23:59:59Z')
+    const activeMenu = allMenus.find(m => m.createdAt <= endOfDay) || allMenus[allMenus.length - 1]
+    if (!activeMenu) return null
+
+    const dayOfWeek = logDate.getDay()
+    const planned = activeMenu.meals.find(m => m.dayOfWeek === dayOfWeek && mealType.includes(m.mealType))
+    return planned?.recipeText
+  }
+
   const todayStr = format(new Date(), 'yyyy-MM-dd')
 
   const formatDateStr = (dateStr: string) => {
@@ -76,26 +92,39 @@ export default async function EvolucaoPage() {
         {mealLogs.length === 0 ? (
           <p className="text-gray-500">Nenhum registro ainda.</p>
         ) : (
-          <div className="space-y-3">
-            {mealLogs.map(log => (
-              <div key={log.id} className={`p-4 rounded-md border flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${log.consumed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
-                <div>
-                  <strong className="text-gray-800">{formatDateStr(log.date)} - {log.mealType}</strong>
-                  <div className="text-sm mt-1">
-                    {log.consumed ? (
-                      <span className="text-emerald-600 font-semibold">Consumido ✔️</span>
-                    ) : (
-                      <span className="text-red-500 font-semibold">Pulou ❌</span>
+          <div className="space-y-4">
+            {mealLogs.map(log => {
+              const plannedRecipe = getPlannedMeal(log.date, log.mealType)
+              
+              return (
+                <div key={log.id} className={`p-4 rounded-md border flex flex-col gap-3 ${log.consumed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <strong className="text-gray-800">{formatDateStr(log.date)} - {log.mealType}</strong>
+                      <div className="text-sm mt-1">
+                        {log.consumed ? (
+                          <span className="text-emerald-600 font-semibold">Consumido ✔️</span>
+                        ) : (
+                          <span className="text-red-500 font-semibold">Pulou ❌</span>
+                        )}
+                      </div>
+                    </div>
+                    {log.justification && (
+                      <div className="bg-white p-2 rounded text-sm text-gray-600 italic border border-gray-200 w-full sm:w-1/2">
+                        " {log.justification} "
+                      </div>
                     )}
                   </div>
+                  
+                  {plannedRecipe && (
+                    <div className="bg-white/60 p-3 rounded border border-gray-200/50 text-sm text-gray-700">
+                      <span className="font-semibold text-gray-500 text-xs uppercase tracking-wider block mb-1">Cardápio Planejado:</span>
+                      {plannedRecipe}
+                    </div>
+                  )}
                 </div>
-                {log.justification && (
-                  <div className="bg-white p-2 rounded text-sm text-gray-600 italic border border-gray-200 w-full sm:w-1/2">
-                    " {log.justification} "
-                  </div>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
