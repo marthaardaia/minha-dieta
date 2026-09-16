@@ -91,7 +91,11 @@ export default async function Home() {
             const justification = log?.justification ?? ''
             
             // Procura no cardápio gerado algo que lembre o tipo da refeição
-            const plannedMeal = todaysMeals.find(m => slot.type.includes(m.mealType))
+            const plannedMeal = todaysMeals.find(m => {
+              const mType = m.mealType.toLowerCase().replace(' da ', ' ');
+              const lType = slot.type.toLowerCase().replace(' da ', ' ');
+              return lType.includes(mType) || mType.includes(lType);
+            })
 
             return (
               <div key={slot.type} className={`p-4 rounded-lg border ${isDone ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200'}`}>
