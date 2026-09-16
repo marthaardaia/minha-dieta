@@ -45,6 +45,26 @@ export async function createAdminUser(formData: FormData) {
   revalidatePath('/admin')
 }
 
+export async function deleteAdminUser(id: number) {
+  const session = await getSession()
+  if (!session || !session.isAdmin) throw new Error('Acesso negado')
+  if (id === session.userId) throw new Error('Você não pode excluir a si mesma')
+  
+  await prisma.user.delete({ where: { id } })
+  revalidatePath('/admin')
+}
+
+export async function updateAdminUserPassword(id: number, formData: FormData) {
+  const session = await getSession()
+  if (!session || !session.isAdmin) throw new Error('Acesso negado')
+  
+  const password = formData.get('password') as string
+  if (!password) return
+
+  await prisma.user.update({ where: { id }, data: { password } })
+  revalidatePath('/admin')
+}
+
 export async function addIngredient(formData: FormData) {
   const userId = await getUserId()
   const name = formData.get('name') as string

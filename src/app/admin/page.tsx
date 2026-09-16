@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { createAdminUser } from '@/app/actions'
+import { createAdminUser, deleteAdminUser, updateAdminUserPassword } from '@/app/actions'
 import { getSession } from '@/lib/auth'
 import { ShieldCheck, Users, UserPlus } from 'lucide-react'
 import { redirect } from 'next/navigation'
@@ -62,13 +62,14 @@ export default async function AdminPage() {
         </h3>
         
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-gray-600">
-                <th className="p-3 font-semibold text-sm">ID</th>
-                <th className="p-3 font-semibold text-sm">Nome de Usuário</th>
+                <th className="p-3 font-semibold text-sm w-12">ID</th>
+                <th className="p-3 font-semibold text-sm">Usuário</th>
                 <th className="p-3 font-semibold text-sm">Senha</th>
-                <th className="p-3 font-semibold text-sm">Data de Cadastro</th>
+                <th className="p-3 font-semibold text-sm">Cadastro</th>
+                <th className="p-3 font-semibold text-sm text-center">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -78,8 +79,35 @@ export default async function AdminPage() {
                   <td className="p-3 font-medium text-gray-800">
                     {u.username} {u.isAdmin && <span className="ml-2 text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">Admin</span>}
                   </td>
-                  <td className="p-3 text-sm font-mono text-gray-500">{u.password}</td>
+                  <td className="p-3 text-sm font-mono text-gray-500">
+                    <form action={async (formData) => {
+                      'use server'
+                      await updateAdminUserPassword(u.id, formData)
+                    }} className="flex items-center gap-2">
+                      <input 
+                        type="text" 
+                        name="password" 
+                        defaultValue={u.password}
+                        className="border border-gray-300 p-1 text-sm rounded w-24 focus:ring-emerald-500 font-mono"
+                      />
+                      <button type="submit" className="text-xs bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-gray-700 font-sans">
+                        Salvar
+                      </button>
+                    </form>
+                  </td>
                   <td className="p-3 text-sm text-gray-500">{u.createdAt.toLocaleDateString('pt-BR')}</td>
+                  <td className="p-3 text-sm text-center">
+                    {!u.isAdmin && (
+                      <form action={async () => {
+                        'use server'
+                        await deleteAdminUser(u.id)
+                      }}>
+                        <button type="submit" className="text-xs bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded transition">
+                          Excluir
+                        </button>
+                      </form>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
