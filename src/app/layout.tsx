@@ -52,19 +52,31 @@ export default function RootLayout({
           {children}
         </main>
 
-        <nav className="bg-white border-t border-gray-200 fixed bottom-0 w-full z-50 md:sticky md:bottom-auto md:w-auto md:hidden shadow-lg">
-          <div className="flex justify-around items-center p-3">
-            <Link href="/" className="flex flex-col items-center text-gray-600 hover:text-emerald-600">
-              <Home size={24} />
-              <span className="text-xs mt-1">Hoje</span>
+        <nav className="bg-white border-t border-gray-200 fixed bottom-0 w-full z-50 md:hidden shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div className="flex overflow-x-auto hide-scrollbar items-center px-2 py-2 gap-4 snap-x">
+            <Link href="/" className="flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 min-w-[64px] snap-center">
+              <Home size={22} />
+              <span className="text-[10px] mt-1 font-medium">Hoje</span>
             </Link>
-            <Link href="/despensa" className="flex flex-col items-center text-gray-600 hover:text-emerald-600">
-              <ShoppingBasket size={24} />
-              <span className="text-xs mt-1">Despensa</span>
+            <Link href="/despensa" className="flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 min-w-[64px] snap-center">
+              <ShoppingBasket size={22} />
+              <span className="text-[10px] mt-1 font-medium">Despensa</span>
             </Link>
-            <Link href="/cardapio" className="flex flex-col items-center text-gray-600 hover:text-emerald-600">
-              <CalendarDays size={24} />
-              <span className="text-xs mt-1">Cardápio</span>
+            <Link href="/cardapio" className="flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 min-w-[64px] snap-center">
+              <CalendarDays size={22} />
+              <span className="text-[10px] mt-1 font-medium">Cardápio</span>
+            </Link>
+            <Link href="/compras" className="flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 min-w-[64px] snap-center">
+              <ShoppingCart size={22} />
+              <span className="text-[10px] mt-1 font-medium">Compras</span>
+            </Link>
+            <Link href="/favoritos" className="flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 min-w-[64px] snap-center">
+              <Heart size={22} />
+              <span className="text-[10px] mt-1 font-medium">Favoritos</span>
+            </Link>
+            <Link href="/evolucao" className="flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 min-w-[64px] snap-center">
+              <LineChart size={22} />
+              <span className="text-[10px] mt-1 font-medium">Evolução</span>
             </Link>
           </div>
         </nav>

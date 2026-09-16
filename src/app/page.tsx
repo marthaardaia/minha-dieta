@@ -122,15 +122,15 @@ export default async function Home() {
                   'use server'
                   const just = formData.get('justification') as string
                   await markMeal(today, slot.type, isDone, just)
-                }} className="mt-2 flex gap-2">
+                }} className="mt-2 flex flex-col sm:flex-row gap-2">
                   <input 
                     type="text" 
                     name="justification" 
                     defaultValue={justification}
                     placeholder="Imprevisto? Justifique o atraso ou alteração..." 
-                    className="flex-1 text-sm border border-gray-300 rounded-md p-2 bg-white"
+                    className="w-full text-sm border border-gray-300 rounded-md p-2 bg-white"
                   />
-                  <button type="submit" className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 rounded-md">
+                  <button type="submit" className="w-full sm:w-auto py-2 sm:py-0 text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 rounded-md font-medium">
                     Salvar
                   </button>
                 </form>
