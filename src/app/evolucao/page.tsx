@@ -17,6 +17,11 @@ export default async function EvolucaoPage() {
 
   const todayStr = format(new Date(), 'yyyy-MM-dd')
 
+  const formatDateStr = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-')
+    return `${d}/${m}/${y}`
+  }
+
   return (
     <div className="space-y-6">
       
@@ -53,7 +58,7 @@ export default async function EvolucaoPage() {
             <div className="flex gap-4 overflow-x-auto pb-2">
               {weightLogs.map(log => (
                 <div key={log.id} className="min-w-fit bg-blue-50 p-3 rounded-md border border-blue-100 text-center">
-                  <span className="block text-xs text-gray-500">{log.date}</span>
+                  <span className="block text-xs text-gray-500">{formatDateStr(log.date)}</span>
                   <strong className="text-lg text-blue-800">{log.weight} kg</strong>
                 </div>
               ))}
@@ -75,7 +80,7 @@ export default async function EvolucaoPage() {
             {mealLogs.map(log => (
               <div key={log.id} className={`p-4 rounded-md border flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${log.consumed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
                 <div>
-                  <strong className="text-gray-800">{log.date} - {log.mealType}</strong>
+                  <strong className="text-gray-800">{formatDateStr(log.date)} - {log.mealType}</strong>
                   <div className="text-sm mt-1">
                     {log.consumed ? (
                       <span className="text-emerald-600 font-semibold">Consumido ✔️</span>
