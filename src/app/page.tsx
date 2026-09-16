@@ -34,7 +34,13 @@ export default async function Home() {
     where: { userId, date: todayStr }
   })
 
-  const waterSlots = ['06:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  const cupSize = user?.waterCupSize || 450
+  const cupsGoal = user?.waterCupsGoal || 8
+
+  const waterSlots = cupsGoal === 8 
+    ? ['06:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
+    : Array.from({ length: cupsGoal }, (_, i) => `Copo ${i + 1}`)
   const mealSlots = [
     { type: 'Desjejum (07:00)', icon: Coffee, required: true },
     { type: 'Lanche Manhã', icon: Utensils, required: false },
@@ -72,7 +78,7 @@ export default async function Home() {
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-blue-600">
           <Droplet />
-          Hidratação (450ml por copo)
+          Hidratação ({cupSize}ml por copo)
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {waterSlots.map(slot => {

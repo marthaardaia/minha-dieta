@@ -65,6 +65,27 @@ export async function updateAdminUserPassword(id: number, formData: FormData) {
   revalidatePath('/admin')
 }
 
+export async function updateUserProfile(formData: FormData) {
+  const session = await getSession()
+  if (!session) throw new Error('Acesso negado')
+  
+  const dietInstructions = formData.get('dietInstructions') as string
+  const waterCupSize = parseInt(formData.get('waterCupSize') as string)
+  const waterCupsGoal = parseInt(formData.get('waterCupsGoal') as string)
+
+  await prisma.user.update({ 
+    where: { id: session.userId }, 
+    data: { 
+      dietInstructions, 
+      waterCupSize: isNaN(waterCupSize) ? undefined : waterCupSize,
+      waterCupsGoal: isNaN(waterCupsGoal) ? undefined : waterCupsGoal
+    } 
+  })
+  
+  revalidatePath('/perfil')
+  revalidatePath('/')
+}
+
 export async function addIngredient(formData: FormData) {
   const userId = await getUserId()
   const name = formData.get('name') as string
@@ -124,14 +145,19 @@ export async function generateWeeklyMenu() {
     return { error: 'Adicione mais ingredientes na despensa para gerar o cardápio.' }
   }
 
+  const user = await prisma.user.findUnique({ where: { id: userId } })
+  const defaultDiet = `- Desjejum: (Variar entre as opções: 2 a 3 frutas, ou 2 pedaços de raiz/cuscuz, ou mingau, ou vitamina, ou 1 ovo cozido). Lembrete: 1 colher de sementes.
+- Lanches (manhã e tarde): 1 fruta ou suco natural ou água de coco. Variar as frutas.
+- Almoço: Salada crua (metade do prato), 2 colheres de arroz integral, 1 concha de feijão, 1 porção de proteína (frango, ovo, peixe). Variar a proteína e os legumes.
+- Jantar: Sopa de legumes OU salada com arroz integral e ovo OU mingau de aveia OU vitamina. Variar.`
+
+  const dietGuidelines = user?.dietInstructions || defaultDiet
+
   const prompt = `Você é um assistente culinário especializado em dietas restritas.
 A usuária não sabe cozinhar e quer um cardápio semanal VARIADO (7 dias) baseado nas diretrizes da nutricionista e no que tem na despensa.
 
 Diretrizes da Dieta:
-- Desjejum: (Variar entre as opções: 2 a 3 frutas, ou 2 pedaços de raiz/cuscuz, ou mingau, ou vitamina, ou 1 ovo cozido). Lembrete: 1 colher de sementes.
-- Lanches (manhã e tarde): 1 fruta ou suco natural ou água de coco. Variar as frutas.
-- Almoço: Salada crua (metade do prato), 2 colheres de arroz integral, 1 concha de feijão, 1 porção de proteína (frango, ovo, peixe). Variar a proteína e os legumes.
-- Jantar: Sopa de legumes OU salada com arroz integral e ovo OU mingau de aveia OU vitamina. Variar.
+${dietGuidelines}
 
 Ingredientes disponíveis na despensa: ${ingredientNames}. (Se faltar algo básico para as regras, invente com o que é permitido).
 

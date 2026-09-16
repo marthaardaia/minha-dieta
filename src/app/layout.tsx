@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import Link from 'next/link'
-import { Home, ShoppingBasket, CalendarDays, ShoppingCart, Heart, LineChart, LogOut, ShieldCheck } from 'lucide-react'
+import { Home, ShoppingBasket, CalendarDays, ShoppingCart, Heart, LineChart, LogOut, ShieldCheck, User } from 'lucide-react'
 import { NotificationManager } from '@/components/NotificationManager'
 import { getSession } from '@/lib/auth'
 
@@ -49,6 +49,10 @@ export default async function RootLayout({
                   <LineChart size={18} /> Evolução
                 </Link>
                 
+                <Link href="/perfil" className="hover:text-emerald-200 transition font-medium flex items-center gap-1">
+                  <User size={18} /> Perfil
+                </Link>
+
                 {session.isAdmin && (
                   <Link href="/admin" className="hover:text-emerald-200 transition font-medium flex items-center gap-1 text-emerald-100 bg-emerald-700 px-2 py-1 rounded">
                     <ShieldCheck size={18} /> Admin
@@ -94,6 +98,10 @@ export default async function RootLayout({
               <Link href="/evolucao" className="flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 min-w-[64px] snap-center">
                 <LineChart size={22} />
                 <span className="text-[10px] mt-1 font-medium">Evolução</span>
+              </Link>
+              <Link href="/perfil" className="flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 min-w-[64px] snap-center">
+                <User size={22} />
+                <span className="text-[10px] mt-1 font-medium">Perfil</span>
               </Link>
               {session.isAdmin && (
                 <Link href="/admin" className="flex flex-col items-center justify-center text-gray-500 hover:text-emerald-600 min-w-[64px] snap-center">
