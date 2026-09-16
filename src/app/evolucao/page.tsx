@@ -27,7 +27,12 @@ export default async function EvolucaoPage() {
     if (!activeMenu) return null
 
     const dayOfWeek = logDate.getDay()
-    const planned = activeMenu.meals.find(m => m.dayOfWeek === dayOfWeek && mealType.includes(m.mealType))
+    const planned = activeMenu.meals.find(m => {
+      if (m.dayOfWeek !== dayOfWeek) return false;
+      const mType = m.mealType.toLowerCase().replace(' da ', ' ');
+      const lType = mealType.toLowerCase().replace(' da ', ' ');
+      return lType.includes(mType) || mType.includes(lType);
+    })
     return planned?.recipeText
   }
 
