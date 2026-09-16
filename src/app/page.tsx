@@ -3,7 +3,7 @@ import { markMeal, markWater } from '@/app/actions'
 import { Check, CheckCircle2, Coffee, Moon, Utensils, Droplet, Info } from 'lucide-react'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
-import GenerateButton from '@/components/GenerateButton'
+import { GenerateButton } from '@/components/GenerateButton'
 
 export const dynamic = 'force-dynamic'
 
