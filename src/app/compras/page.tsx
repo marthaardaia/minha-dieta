@@ -17,17 +17,17 @@ export default async function ComprasPage() {
           Lista de Compras
         </h2>
         
-        <form action={addShoppingItem} className="flex gap-2">
+        <form action={addShoppingItem} className="flex flex-col sm:flex-row gap-2">
           <input 
             type="text" 
             name="name" 
             placeholder="O que está faltando?" 
-            className="border border-gray-300 p-3 rounded-md flex-1 text-gray-800"
+            className="w-full flex-1 border border-gray-300 p-3 rounded-md text-gray-800"
             required
           />
-          <button type="submit" className="bg-emerald-600 text-white px-4 py-2 rounded-md hover:bg-emerald-700 transition flex items-center">
+          <button type="submit" className="w-full sm:w-auto bg-emerald-600 text-white px-4 py-3 sm:py-2 rounded-md hover:bg-emerald-700 transition flex items-center justify-center">
             <Plus size={20} />
-            <span className="hidden sm:inline ml-1">Adicionar</span>
+            <span className="ml-1">Adicionar</span>
           </button>
         </form>
       </div>

@@ -26,12 +26,12 @@ export default async function EvolucaoPage() {
           Acompanhamento de Peso
         </h2>
         
-        <form action={addWeightLog} className="flex gap-2">
+        <form action={addWeightLog} className="flex flex-col sm:flex-row gap-2">
           <input 
             type="date" 
             name="date" 
             defaultValue={todayStr}
-            className="border border-gray-300 p-3 rounded-md text-gray-800"
+            className="w-full sm:w-auto border border-gray-300 p-3 rounded-md text-gray-800"
             required
           />
           <input 
@@ -39,12 +39,11 @@ export default async function EvolucaoPage() {
             step="0.1"
             name="weight" 
             placeholder="Seu peso (kg)" 
-            className="border border-gray-300 p-3 rounded-md flex-1 text-gray-800"
+            className="w-full flex-1 border border-gray-300 p-3 rounded-md text-gray-800"
             required
           />
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition">
-            <span className="hidden sm:inline">Registrar</span>
-            <Plus className="sm:hidden" size={20} />
+          <button type="submit" className="w-full sm:w-auto bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 transition flex items-center justify-center">
+            <span>Registrar</span>
           </button>
         </form>
 
