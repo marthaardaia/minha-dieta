@@ -84,7 +84,7 @@ export default async function Home() {
                 <span className="font-semibold text-gray-700">{slot}</span>
                 <form action={async () => {
                   'use server'
-                  await markWater(today, slot, !isDone)
+                  await markWater(todayStr, slot, !isDone)
                 }}>
                   <button className={`w-10 h-10 rounded-full flex items-center justify-center text-white ${isDone ? 'bg-blue-500' : 'bg-gray-300 hover:bg-gray-400'}`}>
                     <Check size={20} />
@@ -132,7 +132,7 @@ export default async function Home() {
                   </div>
                   <form action={async () => {
                     'use server'
-                    await markMeal(today, slot.type, !isDone, justification)
+                    await markMeal(todayStr, slot.type, !isDone, justification)
                   }}>
                     <button className={`w-full md:w-auto px-4 py-2 rounded-md text-white font-medium text-sm transition ${isDone ? 'bg-emerald-500' : 'bg-gray-300 hover:bg-gray-400'}`}>
                       {isDone ? 'Feito' : 'Marcar'}
@@ -143,7 +143,7 @@ export default async function Home() {
                 <form action={async (formData) => {
                   'use server'
                   const just = formData.get('justification') as string
-                  await markMeal(today, slot.type, isDone, just)
+                  await markMeal(todayStr, slot.type, isDone, just)
                 }} className="mt-2 flex flex-col sm:flex-row gap-2">
                   <input 
                     type="text" 
