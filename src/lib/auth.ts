@@ -27,7 +27,8 @@ export async function loginSession(userId: number, username: string, isAdmin: bo
   const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   const session = await encrypt({ userId, username, isAdmin, expires })
 
-  cookies().set('session', session, {
+  const cookieStore = await cookies()
+  cookieStore.set('session', session, {
     expires,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -37,7 +38,8 @@ export async function loginSession(userId: number, username: string, isAdmin: bo
 }
 
 export async function logoutSession() {
-  cookies().set('session', '', {
+  const cookieStore = await cookies()
+  cookieStore.set('session', '', {
     expires: new Date(0),
     httpOnly: true,
     path: '/',
@@ -45,7 +47,8 @@ export async function logoutSession() {
 }
 
 export async function getSession() {
-  const session = cookies().get('session')?.value
+  const cookieStore = await cookies()
+  const session = cookieStore.get('session')?.value
   if (!session) return null
   return await decrypt(session)
 }
