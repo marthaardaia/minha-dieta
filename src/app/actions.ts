@@ -3,62 +3,108 @@
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { loginSession, logoutSession, getSession } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+
+async function getUserId() {
+  const session = await getSession()
+  if (!session || !session.userId) {
+    throw new Error('Não autorizado')
+  }
+  return session.userId
+}
+
+export async function loginAction(formData: FormData) {
+  const username = formData.get('username') as string
+  const password = formData.get('password') as string
+
+  const user = await prisma.user.findUnique({ where: { username } })
+  if (!user || user.password !== password) {
+    throw new Error('Credenciais inválidas')
+  }
+
+  await loginSession(user.id, user.username, user.isAdmin)
+  redirect('/')
+}
+
+export async function logoutAction() {
+  await logoutSession()
+  redirect('/login')
+}
+
+export async function createAdminUser(formData: FormData) {
+  const session = await getSession()
+  if (!session || !session.isAdmin) throw new Error('Acesso negado')
+  
+  const username = formData.get('username') as string
+  const password = formData.get('password') as string
+  
+  if (!username || !password) return
+
+  await prisma.user.create({ data: { username, password } })
+  revalidatePath('/admin')
+}
 
 export async function addIngredient(formData: FormData) {
+  const userId = await getUserId()
   const name = formData.get('name') as string
   const category = formData.get('category') as string
 
   if (!name || !category) return
 
   await prisma.ingredient.create({
-    data: { name, category, isAvailable: true },
+    data: { name, category, isAvailable: true, userId },
   })
   revalidatePath('/despensa')
 }
 
 export async function toggleIngredient(id: number, isAvailable: boolean) {
-  await prisma.ingredient.update({ where: { id }, data: { isAvailable } })
+  const userId = await getUserId()
+  await prisma.ingredient.updateMany({ where: { id, userId }, data: { isAvailable } })
   revalidatePath('/despensa')
 }
 
 export async function deleteIngredient(id: number) {
-  await prisma.ingredient.delete({ where: { id } })
+  const userId = await getUserId()
+  await prisma.ingredient.deleteMany({ where: { id, userId } })
   revalidatePath('/despensa')
 }
 
 export async function markWater(date: string, timeSlot: string, consumed: boolean, justification?: string) {
+  const userId = await getUserId()
   await prisma.waterLog.upsert({
-    where: { date_timeSlot: { date, timeSlot } },
+    where: { userId_date_timeSlot: { userId, date, timeSlot } },
     update: { consumed, justification },
-    create: { date, timeSlot, consumed, justification },
+    create: { userId, date, timeSlot, consumed, justification },
   })
   revalidatePath('/')
 }
 
 export async function markMeal(date: string, mealType: string, consumed: boolean, justification?: string) {
+  const userId = await getUserId()
   await prisma.mealLog.upsert({
-    where: { date_mealType: { date, mealType } },
+    where: { userId_date_mealType: { userId, date, mealType } },
     update: { consumed, justification },
-    create: { date, mealType, consumed, justification },
+    create: { userId, date, mealType, consumed, justification },
   })
   revalidatePath('/')
 }
 
 export async function generateWeeklyMenu() {
+  const userId = await getUserId()
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey || apiKey === 'COLOQUE_SUA_CHAVE_AQUI') {
     return { error: 'Chave da API do Gemini não configurada no arquivo .env' }
   }
 
-  const ingredients = await prisma.ingredient.findMany({ where: { isAvailable: true } })
+  const ingredients = await prisma.ingredient.findMany({ where: { isAvailable: true, userId } })
   const ingredientNames = ingredients.map(i => i.name).join(', ')
 
   if (ingredients.length < 3) {
     return { error: 'Adicione mais ingredientes na despensa para gerar o cardápio.' }
   }
 
-  const prompt = `
-Você é um assistente culinário especializado em dietas restritas.
+  const prompt = `Você é um assistente culinário especializado em dietas restritas.
 A usuária não sabe cozinhar e quer um cardápio semanal VARIADO (7 dias) baseado nas diretrizes da nutricionista e no que tem na despensa.
 
 Diretrizes da Dieta:
@@ -71,20 +117,18 @@ Ingredientes disponíveis na despensa: ${ingredientNames}. (Se faltar algo bási
 
 Retorne EXATAMENTE UM JSON no formato:
 {
-  "prep_semana": "Guia de Batch Cooking: como cozinhar o arroz, feijão, frango e legumes de uma vez para guardar na geladeira e facilitar a semana toda.",
+  "prep_semana": "Guia de Batch Cooking...",
   "dias": [
     {
-      "dia": 1, // 0=Dom, 1=Seg, 2=Ter, 3=Qua, 4=Qui, 5=Sex, 6=Sab
+      "dia": 1, 
       "desjejum": "...",
       "lanche_manha": "...",
       "almoco": "...",
       "lanche_tarde": "...",
       "jantar": "..."
-    },
-    // ... repita para os 7 dias (0 a 6)
+    }
   ]
-}
-`
+}`
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
@@ -104,14 +148,12 @@ Retorne EXATAMENTE UM JSON no formato:
 
     const mealsToCreate = []
     
-    // Adiciona o guia de prep como uma "refeição" geral
     mealsToCreate.push({
       dayOfWeek: -1,
       mealType: 'Guia de Preparo (Batch Cooking)',
       recipeText: parsed.prep_semana
     })
 
-    // Adiciona as refeições diárias
     for (const d of parsed.dias) {
       mealsToCreate.push({ dayOfWeek: d.dia, mealType: 'Desjejum', recipeText: d.desjejum })
       mealsToCreate.push({ dayOfWeek: d.dia, mealType: 'Lanche da Manhã', recipeText: d.lanche_manha })
@@ -122,6 +164,7 @@ Retorne EXATAMENTE UM JSON no formato:
 
     const menu = await prisma.weeklyMenu.create({
       data: {
+        userId,
         startDate: today,
         endDate: nextWeek,
         meals: {
@@ -138,36 +181,43 @@ Retorne EXATAMENTE UM JSON no formato:
     return { error: 'Erro ao gerar cardápio: ' + error.message }
   }
 }
+
 export async function addShoppingItem(formData: FormData) {
+  const userId = await getUserId()
   const name = formData.get('name') as string
   if (!name) return
-  await prisma.shoppingItem.create({ data: { name } })
+  await prisma.shoppingItem.create({ data: { name, userId } })
   revalidatePath('/compras')
 }
 export async function toggleShoppingItem(id: number, isBought: boolean) {
-  await prisma.shoppingItem.update({ where: { id }, data: { isBought } })
+  const userId = await getUserId()
+  await prisma.shoppingItem.updateMany({ where: { id, userId }, data: { isBought } })
   revalidatePath('/compras')
 }
 export async function deleteShoppingItem(id: number) {
-  await prisma.shoppingItem.delete({ where: { id } })
+  const userId = await getUserId()
+  await prisma.shoppingItem.deleteMany({ where: { id, userId } })
   revalidatePath('/compras')
 }
 export async function saveFavoriteRecipe(name: string, mealType: string, recipeText: string) {
-  await prisma.favoriteRecipe.create({ data: { name, mealType, recipeText } })
+  const userId = await getUserId()
+  await prisma.favoriteRecipe.create({ data: { name, mealType, recipeText, userId } })
   revalidatePath('/favoritos')
 }
 export async function deleteFavoriteRecipe(id: number) {
-  await prisma.favoriteRecipe.delete({ where: { id } })
+  const userId = await getUserId()
+  await prisma.favoriteRecipe.deleteMany({ where: { id, userId } })
   revalidatePath('/favoritos')
 }
 export async function addWeightLog(formData: FormData) {
+  const userId = await getUserId()
   const date = formData.get('date') as string
   const weight = parseFloat(formData.get('weight') as string)
   if (!date || isNaN(weight)) return
   await prisma.weightLog.upsert({
-    where: { date },
+    where: { userId_date: { userId, date } },
     update: { weight },
-    create: { date, weight },
+    create: { userId, date, weight },
   })
   revalidatePath('/evolucao')
 }

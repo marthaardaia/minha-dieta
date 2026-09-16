@@ -2,20 +2,29 @@ import { prisma } from '@/lib/prisma'
 import { addWeightLog } from '@/app/actions'
 import { format } from 'date-fns'
 import { LineChart, Plus, History } from 'lucide-react'
+import { getSession } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default async function EvolucaoPage() {
+  const session = await getSession()
+  if (!session) redirect('/login')
+  const userId = session.userId
+
   const weightLogs = await prisma.weightLog.findMany({
+    where: { userId },
     orderBy: { date: 'desc' }
   })
   
   const mealLogs = await prisma.mealLog.findMany({
+    where: { userId },
     orderBy: { date: 'desc' },
     take: 30
   })
 
   const allMenus = await prisma.weeklyMenu.findMany({
+    where: { userId },
     orderBy: { createdAt: 'desc' },
     include: { meals: true }
   })

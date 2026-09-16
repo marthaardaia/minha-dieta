@@ -1,19 +1,37 @@
 import { prisma } from '@/lib/prisma'
-import { markWater, markMeal } from '@/app/actions'
-import { format } from 'date-fns'
-import { Check, Info, Droplet, Coffee, Utensils, Moon } from 'lucide-react'
+import { markMeal, markWater } from '@/app/actions'
+import { Check, CheckCircle2, Coffee, Moon, Utensils, Droplet, Info } from 'lucide-react'
+import { getSession } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import GenerateButton from '@/components/GenerateButton'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const session = await getSession()
+  if (!session) redirect('/login')
+  const userId = session.userId
+
+  const todayStr = new Date().toLocaleDateString('en-CA') 
+  const todayDate = new Date(todayStr + 'T12:00:00Z')
+  const dayOfWeek = todayDate.getDay() 
+
+  const activeMenu = await prisma.weeklyMenu.findFirst({
+    where: {
+      userId,
+      startDate: { lte: todayDate },
+      endDate: { gte: todayDate }
+    },
+    include: { meals: true },
+    orderBy: { createdAt: 'desc' }
+  })
   
   const waterLogs = await prisma.waterLog.findMany({
-    where: { date: today }
+    where: { userId, date: todayStr }
   })
   
   const mealLogs = await prisma.mealLog.findMany({
-    where: { date: today }
+    where: { userId, date: todayStr }
   })
 
   const waterSlots = ['06:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']

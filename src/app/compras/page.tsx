@@ -1,11 +1,17 @@
 import { prisma } from '@/lib/prisma'
 import { addShoppingItem, toggleShoppingItem, deleteShoppingItem } from '@/app/actions'
 import { ShoppingCart, Plus, Trash2, Check, X } from 'lucide-react'
+import { getSession } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ComprasPage() {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
   const items = await prisma.shoppingItem.findMany({
+    where: { userId: session.userId },
     orderBy: { createdAt: 'desc' }
   })
 

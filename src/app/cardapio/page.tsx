@@ -1,4 +1,6 @@
 import { prisma } from '@/lib/prisma'
+import { getSession } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { ChefHat, CalendarClock, AlertCircle, Heart } from 'lucide-react'
 import { GenerateButton } from '@/components/GenerateButton'
 import { saveFavoriteRecipe } from '@/app/actions'
@@ -6,7 +8,11 @@ import { saveFavoriteRecipe } from '@/app/actions'
 export const dynamic = 'force-dynamic'
 
 export default async function CardapioPage() {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
   const latestMenu = await prisma.weeklyMenu.findFirst({
+    where: { userId: session.userId },
     orderBy: { createdAt: 'desc' },
     include: { meals: true }
   })

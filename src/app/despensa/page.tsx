@@ -1,12 +1,18 @@
 import { prisma } from '@/lib/prisma'
 import { addIngredient, toggleIngredient, deleteIngredient } from '@/app/actions'
-import { Check, X, Plus, Trash2 } from 'lucide-react'
+import { Trash2, Check, X, Plus } from 'lucide-react'
+import { getSession } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DespensaPage() {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
   const ingredients = await prisma.ingredient.findMany({
-    orderBy: { name: 'asc' },
+    where: { userId: session.userId },
+    orderBy: { name: 'asc' }
   })
 
   const categories = [

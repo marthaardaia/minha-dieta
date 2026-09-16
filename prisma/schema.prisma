@@ -7,13 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  ingredients      Ingredient[]
+  weeklyMenus      WeeklyMenu[]
+  waterLogs        WaterLog[]
+  mealLogs         MealLog[]
+  shoppingItems    ShoppingItem[]
+  weightLogs       WeightLog[]
+  favoriteRecipes  FavoriteRecipe[]
+}
+
 model Ingredient {
   id          Int      @id @default(autoincrement())
-  name        String   @unique
+  name        String   
   category    String
   isAvailable Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  userId      Int      @default(1)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
 }
 
 model WeeklyMenu {
@@ -22,6 +43,9 @@ model WeeklyMenu {
   endDate   DateTime
   meals     WeeklyMeal[]
   createdAt DateTime @default(now())
+
+  userId    Int      @default(1)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model WeeklyMeal {
@@ -42,7 +66,10 @@ model WaterLog {
   justification String?
   createdAt     DateTime @default(now())
 
-  @@unique([date, timeSlot])
+  userId        Int      @default(1)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, timeSlot])
 }
 
 model MealLog {
@@ -53,23 +80,32 @@ model MealLog {
   justification String?
   createdAt     DateTime @default(now())
 
-  @@unique([date, mealType])
-}
+  userId        Int      @default(1)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-// === NOVAS FUNCIONALIDADES ===
+  @@unique([userId, date, mealType])
+}
 
 model ShoppingItem {
   id          Int      @id @default(autoincrement())
   name        String
   isBought    Boolean  @default(false)
   createdAt   DateTime @default(now())
+
+  userId      Int      @default(1)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model WeightLog {
   id          Int      @id @default(autoincrement())
-  date        String   @unique
+  date        String   
   weight      Float
   createdAt   DateTime @default(now())
+
+  userId      Int      @default(1)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
 }
 
 model FavoriteRecipe {
@@ -78,4 +114,7 @@ model FavoriteRecipe {
   mealType    String
   recipeText  String
   createdAt   DateTime @default(now())
+
+  userId      Int      @default(1)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

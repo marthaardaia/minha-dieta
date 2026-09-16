@@ -1,11 +1,17 @@
 import { prisma } from '@/lib/prisma'
-import { deleteFavoriteRecipe } from '@/app/actions'
 import { Heart, Trash2 } from 'lucide-react'
+import { deleteFavoriteRecipe } from '@/app/actions'
+import { getSession } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
 export default async function FavoritosPage() {
+  const session = await getSession()
+  if (!session) redirect('/login')
+
   const favorites = await prisma.favoriteRecipe.findMany({
+    where: { userId: session.userId },
     orderBy: { createdAt: 'desc' }
   })
 
