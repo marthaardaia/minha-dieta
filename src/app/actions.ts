@@ -160,6 +160,7 @@ export async function markMeal(date: string, mealType: string, consumed: boolean
     create: { userId, date, mealType, consumed, justification },
   })
   revalidatePath('/')
+  revalidatePath('/evolucao')
 }
 
 export async function generateWeeklyMenu() {
