@@ -50,6 +50,7 @@ export default async function Home() {
   ]
 
   const latestMenu = await prisma.weeklyMenu.findFirst({
+    where: { userId },
     orderBy: { createdAt: 'desc' },
     include: { meals: true }
   })
