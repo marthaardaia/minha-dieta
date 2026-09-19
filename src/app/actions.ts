@@ -237,7 +237,28 @@ export async function addShoppingItem(formData: FormData) {
 }
 export async function toggleShoppingItem(id: number, isBought: boolean) {
   const userId = await getUserId()
+  const item = await prisma.shoppingItem.findFirst({ where: { id, userId } })
+  if (!item) return
+
   await prisma.shoppingItem.updateMany({ where: { id, userId }, data: { isBought } })
+  
+  if (isBought) {
+    const existing = await prisma.ingredient.findFirst({ 
+      where: { name: item.name, userId } 
+    })
+    
+    if (existing) {
+       if (!existing.isAvailable) {
+         await prisma.ingredient.update({ where: { id: existing.id }, data: { isAvailable: true } })
+       }
+    } else {
+       await prisma.ingredient.create({
+         data: { name: item.name, category: 'Outro', isAvailable: true, userId }
+       })
+    }
+    revalidatePath('/despensa')
+  }
+
   revalidatePath('/compras')
 }
 export async function deleteShoppingItem(id: number) {
