@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import { addIngredient, toggleIngredient, deleteIngredient } from '@/app/actions'
-import { Trash2, Check, X, Plus } from 'lucide-react'
+import { addIngredient, toggleIngredient, deleteIngredient, updateIngredient } from '@/app/actions'
+import { Trash2, Check, X, Plus, Edit2 } from 'lucide-react'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
@@ -48,12 +48,29 @@ export default async function DespensaPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {ingredients.map(ing => (
-              <div key={ing.id} className={`flex items-center justify-between p-3 rounded-lg border ${ing.isAvailable ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50 opacity-60'}`}>
-                <div className="flex flex-col">
-                  <span className={`font-medium ${ing.isAvailable ? 'text-emerald-900' : 'text-gray-500 line-through'}`}>{ing.name}</span>
-                  <span className="text-xs text-gray-500">{ing.category}</span>
-                </div>
-                <div className="flex gap-2">
+              <div key={ing.id} className={`flex items-start justify-between p-3 rounded-lg border transition-all ${ing.isAvailable ? 'border-emerald-200 bg-emerald-50' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
+                <details className="flex-1 group mr-2">
+                  <summary className="flex flex-col cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium hover:underline ${ing.isAvailable ? 'text-emerald-900' : 'text-gray-500 line-through'}`}>
+                        {ing.name}
+                      </span>
+                      <Edit2 size={12} className="text-gray-400 opacity-0 group-hover:opacity-100 transition" />
+                    </div>
+                    <span className="text-xs text-gray-500">{ing.category}</span>
+                  </summary>
+                  <form action={async (formData) => {
+                    'use server'
+                    await updateIngredient(ing.id, formData)
+                  }} className="mt-3 flex flex-col gap-2">
+                    <input name="name" defaultValue={ing.name} className="text-sm border border-gray-300 p-1.5 rounded bg-white" required />
+                    <select name="category" defaultValue={ing.category} className="text-sm border border-gray-300 p-1.5 rounded bg-white" required>
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <button type="submit" className="text-xs bg-emerald-600 text-white p-1.5 rounded hover:bg-emerald-700">Salvar Alterações</button>
+                  </form>
+                </details>
+                <div className="flex gap-2 shrink-0">
                   <form action={async () => {
                     'use server'
                     await toggleIngredient(ing.id, !ing.isAvailable)

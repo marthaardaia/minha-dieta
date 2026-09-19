@@ -105,6 +105,20 @@ export async function toggleIngredient(id: number, isAvailable: boolean) {
   revalidatePath('/despensa')
 }
 
+export async function updateIngredient(id: number, formData: FormData) {
+  const userId = await getUserId()
+  const name = formData.get('name') as string
+  const category = formData.get('category') as string
+
+  if (!name || !category) return
+
+  await prisma.ingredient.updateMany({ 
+    where: { id, userId }, 
+    data: { name, category } 
+  })
+  revalidatePath('/despensa')
+}
+
 export async function deleteIngredient(id: number) {
   const userId = await getUserId()
   await prisma.ingredient.deleteMany({ where: { id, userId } })
