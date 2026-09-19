@@ -19,8 +19,7 @@ export default async function EvolucaoPage() {
   
   const mealLogs = await prisma.mealLog.findMany({
     where: { userId },
-    orderBy: { date: 'desc' },
-    take: 30
+    orderBy: { date: 'desc' }
   })
 
   const allMenus = await prisma.weeklyMenu.findMany({
@@ -107,38 +106,69 @@ export default async function EvolucaoPage() {
           <p className="text-gray-500">Nenhum registro ainda.</p>
         ) : (
           <div className="space-y-4">
-            {mealLogs.map(log => {
-              const plannedRecipe = getPlannedMeal(log.date, log.mealType)
-              
-              return (
-                <div key={log.id} className={`p-4 rounded-md border flex flex-col gap-3 ${log.consumed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                      <strong className="text-gray-800">{formatDateStr(log.date)} - {log.mealType}</strong>
-                      <div className="text-sm mt-1">
-                        {log.consumed ? (
-                          <span className="text-emerald-600 font-semibold">Consumido ✔️</span>
-                        ) : (
-                          <span className="text-red-500 font-semibold">Pulou ❌</span>
-                        )}
+            {Object.entries(
+              mealLogs.reduce((acc, log) => {
+                const date = new Date(log.date + 'T12:00:00Z')
+                const monthYear = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+                if (!acc[monthYear]) acc[monthYear] = {}
+                if (!acc[monthYear][log.date]) acc[monthYear][log.date] = []
+                acc[monthYear][log.date].push(log)
+                return acc
+              }, {} as Record<string, Record<string, typeof mealLogs>>)
+            ).map(([monthYear, days], mIndex) => (
+              <details key={monthYear} className="border border-gray-200 rounded-lg overflow-hidden group" open={mIndex === 0}>
+                <summary className="p-4 font-bold text-emerald-800 cursor-pointer bg-emerald-50 hover:bg-emerald-100 transition capitalize list-none flex justify-between items-center">
+                  <span>{monthYear}</span>
+                  <span className="text-emerald-600 text-xs bg-emerald-200 px-2 py-1 rounded-full">{Object.values(days).flat().length} registros</span>
+                </summary>
+                
+                <div className="p-4 space-y-4 bg-white">
+                  {Object.entries(days).map(([dateStr, logs], dIndex) => (
+                    <details key={dateStr} className="border border-gray-100 rounded-md overflow-hidden" open={mIndex === 0 && dIndex === 0}>
+                      <summary className="p-3 font-semibold text-gray-700 cursor-pointer bg-gray-50 hover:bg-gray-100 transition list-none flex justify-between items-center">
+                        <span>{formatDateStr(dateStr)}</span>
+                        <span className="text-gray-500 text-xs">{logs.length} refeições</span>
+                      </summary>
+                      
+                      <div className="p-3 space-y-3 bg-white">
+                        {logs.map(log => {
+                          const plannedRecipe = getPlannedMeal(log.date, log.mealType)
+                          
+                          return (
+                            <div key={log.id} className={`p-4 rounded-md border flex flex-col gap-3 ${log.consumed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div>
+                                  <strong className="text-gray-800">{log.mealType}</strong>
+                                  <div className="text-sm mt-1">
+                                    {log.consumed ? (
+                                      <span className="text-emerald-600 font-semibold">Consumido ✔️</span>
+                                    ) : (
+                                      <span className="text-red-500 font-semibold">Pulou ❌</span>
+                                    )}
+                                  </div>
+                                </div>
+                                {log.justification && (
+                                  <div className="bg-white p-2 rounded text-sm text-gray-600 italic border border-gray-200 w-full sm:w-1/2">
+                                    " {log.justification} "
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {plannedRecipe && (
+                                <div className="bg-white/60 p-3 rounded border border-gray-200/50 text-sm text-gray-700">
+                                  <span className="font-semibold text-gray-500 text-xs uppercase tracking-wider block mb-1">Cardápio Planejado:</span>
+                                  {plannedRecipe}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
-                    </div>
-                    {log.justification && (
-                      <div className="bg-white p-2 rounded text-sm text-gray-600 italic border border-gray-200 w-full sm:w-1/2">
-                        " {log.justification} "
-                      </div>
-                    )}
-                  </div>
-                  
-                  {plannedRecipe && (
-                    <div className="bg-white/60 p-3 rounded border border-gray-200/50 text-sm text-gray-700">
-                      <span className="font-semibold text-gray-500 text-xs uppercase tracking-wider block mb-1">Cardápio Planejado:</span>
-                      {plannedRecipe}
-                    </div>
-                  )}
+                    </details>
+                  ))}
                 </div>
-              )
-            })}
+              </details>
+            ))}
           </div>
         )}
       </div>
