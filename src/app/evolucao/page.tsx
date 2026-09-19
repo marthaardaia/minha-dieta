@@ -127,13 +127,31 @@ export default async function EvolucaoPage() {
                     <details key={dateStr} className="border border-gray-100 rounded-md overflow-hidden" open={mIndex === 0 && dIndex === 0}>
                       <summary className="p-3 font-semibold text-gray-700 cursor-pointer bg-gray-50 hover:bg-gray-100 transition list-none flex justify-between items-center">
                         <span>{formatDateStr(dateStr)}</span>
-                        <span className="text-gray-500 text-xs">{logs.length} refeições</span>
+                        <span className="text-gray-500 text-xs">{logs.length} registradas</span>
                       </summary>
                       
                       <div className="p-3 space-y-3 bg-white">
-                        {logs.map(log => {
-                          const plannedRecipe = getPlannedMeal(log.date, log.mealType)
+                        {[
+                          'Desjejum (07:00)',
+                          'Lanche Manhã',
+                          'Almoço (12:00)',
+                          'Lanche Tarde',
+                          'Jantar (18:00)'
+                        ].map(mealType => {
+                          const log = logs.find(l => l.mealType === mealType)
+                          const plannedRecipe = getPlannedMeal(dateStr, mealType)
                           
+                          if (!log) {
+                            return (
+                              <div key={mealType} className="p-4 rounded-md border border-gray-200 bg-gray-50 flex flex-col gap-2 opacity-60">
+                                <div>
+                                  <strong className="text-gray-600">{mealType}</strong>
+                                  <div className="text-sm mt-1 text-gray-400 font-medium">Não registrado ⚪</div>
+                                </div>
+                              </div>
+                            )
+                          }
+
                           return (
                             <div key={log.id} className={`p-4 rounded-md border flex flex-col gap-3 ${log.consumed ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
