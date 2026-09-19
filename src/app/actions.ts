@@ -101,7 +101,24 @@ export async function addIngredient(formData: FormData) {
 
 export async function toggleIngredient(id: number, isAvailable: boolean) {
   const userId = await getUserId()
+  const ingredient = await prisma.ingredient.findFirst({ where: { id, userId } })
+  if (!ingredient) return
+
   await prisma.ingredient.updateMany({ where: { id, userId }, data: { isAvailable } })
+  
+  if (!isAvailable) {
+    const existing = await prisma.shoppingItem.findFirst({
+      where: { name: ingredient.name, userId, isBought: false }
+    })
+    
+    if (!existing) {
+      await prisma.shoppingItem.create({
+        data: { name: ingredient.name, isBought: false, userId }
+      })
+    }
+    revalidatePath('/compras')
+  }
+
   revalidatePath('/despensa')
 }
 
