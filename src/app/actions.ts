@@ -198,7 +198,7 @@ Retorne EXATAMENTE UM JSON no formato:
   "prep_semana": "Guia de Batch Cooking...",
   "dias": [
     {
-      "dia": 1, 
+      "dia": 0, // 0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado
       "desjejum": "...",
       "lanche_manha": "...",
       "almoco": "...",
