@@ -233,11 +233,12 @@ Retorne EXATAMENTE UM JSON no formato:
     })
 
     for (const d of parsed.dias) {
-      mealsToCreate.push({ dayOfWeek: d.dia, mealType: 'Desjejum', recipeText: d.desjejum })
-      mealsToCreate.push({ dayOfWeek: d.dia, mealType: 'Lanche da Manhã', recipeText: d.lanche_manha })
-      mealsToCreate.push({ dayOfWeek: d.dia, mealType: 'Almoço', recipeText: d.almoco })
-      mealsToCreate.push({ dayOfWeek: d.dia, mealType: 'Lanche da Tarde', recipeText: d.lanche_tarde })
-      mealsToCreate.push({ dayOfWeek: d.dia, mealType: 'Jantar', recipeText: d.jantar })
+      const dayIndex = d.dia === 7 ? 0 : d.dia;
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Desjejum', recipeText: d.desjejum })
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Lanche da Manhã', recipeText: d.lanche_manha })
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Almoço', recipeText: d.almoco })
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Lanche da Tarde', recipeText: d.lanche_tarde })
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Jantar', recipeText: d.jantar })
     }
 
     const menu = await prisma.weeklyMenu.create({
