@@ -7,14 +7,15 @@ import { GenerateButton } from '@/components/GenerateButton'
 
 export const dynamic = 'force-dynamic'
 
+import { getLocalizedToday } from '@/lib/date'
+
 export default async function Home() {
   const session = await getSession()
   if (!session) redirect('/login')
   const userId = session.userId
 
-  const todayStr = new Date().toLocaleDateString('en-CA') 
+  const { todayStr, dayOfWeek: currentDayOfWeek } = getLocalizedToday()
   const todayDate = new Date(todayStr + 'T12:00:00Z')
-  const dayOfWeek = todayDate.getDay() 
 
   const activeMenu = await prisma.weeklyMenu.findFirst({
     where: {
@@ -55,7 +56,6 @@ export default async function Home() {
     include: { meals: true }
   })
   
-  const currentDayOfWeek = new Date().getDay()
   const todaysMeals = latestMenu?.meals.filter(m => m.dayOfWeek === currentDayOfWeek) || []
 
   return (

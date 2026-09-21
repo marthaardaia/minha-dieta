@@ -4,6 +4,7 @@ import { format } from 'date-fns'
 import { LineChart, Plus, History } from 'lucide-react'
 import { getSession } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { getLocalizedToday } from '@/lib/date'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,7 @@ export default async function EvolucaoPage() {
     return planned?.recipeText
   }
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const { todayStr } = getLocalizedToday()
 
   const formatDateStr = (dateStr: string) => {
     const [y, m, d] = dateStr.split('-')
