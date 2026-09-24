@@ -191,7 +191,9 @@ A usuária não sabe cozinhar e quer um cardápio semanal VARIADO (7 dias) basea
 Diretrizes da Dieta:
 ${dietGuidelines}
 
-Ingredientes disponíveis na despensa: ${ingredientNames}. (Se faltar algo básico para as regras, invente com o que é permitido).
+Ingredientes disponíveis na despensa: ${ingredientNames}.
+
+REGRA DE OURO: Você DEVE respeitar estritamente a despensa. Se as diretrizes pedirem algo específico (ex: castanhas-do-Pará, sementes, suplementos, frutas específicas) que NÃO esteja na lista de ingredientes disponíveis na despensa, NÃO INCLUA esse item na receita. Adapte ou omita o ingrediente para que ela use apenas o que tem em casa! (Apenas se faltar algo básico de tempero/cozimento você pode deduzir).
 
 Retorne EXATAMENTE UM JSON no formato:
 {
