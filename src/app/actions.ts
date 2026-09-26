@@ -214,8 +214,21 @@ Retorne EXATAMENTE UM JSON no formato:
     const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" })
     
-    const result = await model.generateContent(prompt)
-    const text = result.response.text()
+    let text = ''
+    let attempts = 0
+    while (attempts < 3) {
+      try {
+        const result = await model.generateContent(prompt)
+        text = result.response.text()
+        break
+      } catch (e: any) {
+        attempts++
+        if (attempts >= 3 || !e.message.includes('503')) {
+          throw e
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+    }
     
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) throw new Error("A IA não retornou um formato JSON válido.")
