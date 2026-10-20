@@ -187,6 +187,29 @@ export async function generateWeeklyMenu() {
 
   const ingredientList = ingredients.map(i => `- ${i.name}`).join('\n')
 
+  // Lista de alimentos proibidos: itens marcados como "acabou" + alimentos comuns que não estão na despensa
+  const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  const availableNorm = ingredients.map(i => norm(i.name))
+  const isAvailableTerm = (term: string) => {
+    const t = norm(term)
+    const root = t.replace(/s$/, '')
+    return availableNorm.some(a => a.includes(root) || root.includes(a.replace(/s$/, '')))
+  }
+  const unavailable = await prisma.ingredient.findMany({ where: { isAvailable: false, userId } })
+  const commonFoods = ['banana', 'morango', 'peixe', 'tilápia', 'sardinha', 'atum', 'salmão', 'castanha', 'castanha-do-pará', 'castanha de caju', 'nozes', 'amêndoa', 'amendoim', 'chia', 'linhaça', 'gergelim', 'semente de abóbora', 'mamão', 'maçã', 'melancia', 'melão', 'manga', 'pêra', 'abacate', 'abacaxi', 'laranja', 'uva', 'kiwi', 'goiaba', 'macaxeira', 'mandioca', 'batata doce', 'batata-doce', 'cará', 'inhame', 'cuscuz', 'aveia', 'iogurte', 'leite', 'queijo', 'frango', 'carne', 'ovo', 'arroz', 'feijão', 'lentilha', 'grão-de-bico', 'tomate', 'alface', 'cenoura', 'beterraba', 'pepino', 'brócolis', 'couve', 'repolho', 'abobrinha', 'abóbora', 'chuchu', 'espinafre', 'rúcula', 'pimentão', 'quiabo', 'vagem', 'berinjela', 'água de coco', 'tapioca', 'pão', 'granola', 'mel']
+  const forbidden = Array.from(new Set([
+    ...unavailable.map(i => i.name),
+    ...commonFoods,
+  ])).filter(f => !isAvailableTerm(f))
+
+  const findViolations = (obj: any): string[] => {
+    const all = norm(JSON.stringify(obj.dias || []))
+    return forbidden.filter(f => {
+      const t = norm(f).replace(/s$/, '')
+      return new RegExp(`\\b${t.replace(/[-\s]/g, '[-\\s]')}(s|es)?\\b`).test(all)
+    })
+  }
+
   const prompt = `Você é uma nutricionista e assistente culinária. A usuária NÃO sabe cozinhar, quer EMAGRECER e precisa de um cardápio semanal VARIADO (7 dias, domingo a sábado).
 
 === DIRETRIZES DA NUTRICIONISTA (seguir a estrutura e as porções) ===
@@ -203,6 +226,9 @@ REGRAS OBRIGATÓRIAS:
 5. Ao final de CADA refeição, informe a estimativa de calorias no formato "(≈ 350 kcal)".
 6. Como o objetivo é emagrecimento, mantenha o total diário entre 1200 e 1500 kcal, respeitando as porções da nutricionista. Informe o total do dia no campo "total_kcal" (número).
 7. Antes de responder, confira cada refeição: se algum alimento não está na despensa, troque-o.
+
+=== ALIMENTOS PROIBIDOS (a usuária NÃO tem, NUNCA cite) ===
+${forbidden.join(', ')}
 
 Retorne APENAS um JSON válido (sem comentários) no formato:
 {
@@ -228,26 +254,44 @@ Onde "dia": 0 = Domingo, 1 = Segunda, ..., 6 = Sábado. Gere os 7 dias.`
       generationConfig: { temperature: 0.4, responseMimeType: 'application/json' },
     })
     
-    let text = ''
-    let attempts = 0
-    while (attempts < 3) {
-      try {
-        const result = await model.generateContent(prompt)
-        text = result.response.text()
-        break
-      } catch (e: any) {
-        attempts++
-        if (attempts >= 3 || !e.message.includes('503')) {
-          throw e
+    const callModel = async (p: string) => {
+      let attempts = 0
+      while (true) {
+        try {
+          const result = await model.generateContent(p)
+          return result.response.text()
+        } catch (e: any) {
+          attempts++
+          if (attempts >= 3 || !String(e.message).includes('503')) throw e
+          await new Promise(resolve => setTimeout(resolve, 2000))
         }
-        await new Promise(resolve => setTimeout(resolve, 2000))
       }
     }
-    
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) throw new Error("A IA não retornou um formato JSON válido.")
-    
-    const parsed = JSON.parse(jsonMatch[0])
+
+    const parseJson = (text: string) => {
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error("A IA não retornou um formato JSON válido.")
+      return JSON.parse(jsonMatch[0])
+    }
+
+    let parsed = parseJson(await callModel(prompt))
+    let violations = findViolations(parsed)
+    let fixRounds = 0
+    while (violations.length > 0 && fixRounds < 3) {
+      fixRounds++
+      const fixPrompt = `${prompt}
+
+Você gerou o cardápio abaixo, mas ele contém alimentos que a usuária NÃO TEM: ${violations.join(', ')}.
+Reescreva o cardápio inteiro removendo TODOS esses alimentos e substituindo-os APENAS por itens da DESPENSA. Recalcule as calorias.
+
+Cardápio anterior:
+${JSON.stringify(parsed)}`
+      parsed = parseJson(await callModel(fixPrompt))
+      violations = findViolations(parsed)
+    }
+    if (violations.length > 0) {
+      throw new Error(`a IA insistiu em usar itens fora da despensa (${violations.join(', ')}). Tente gerar novamente.`)
+    }
 
     const today = new Date()
     const nextWeek = new Date(today)
