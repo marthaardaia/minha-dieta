@@ -223,8 +223,8 @@ REGRAS OBRIGATÓRIAS:
 2. Exceções permitidas fora da lista: apenas água, sal, temperos secos básicos, alho, cebola, limão e azeite em pequena quantidade.
 3. Siga a estrutura de cada refeição da diretriz (ex.: almoço = salada + arroz + feijão + proteína) usando os itens da despensa que se encaixam em cada grupo.
 4. Informe as quantidades em medidas caseiras (colheres, conchas, unidades, gramas).
-5. Ao final de CADA refeição, informe a estimativa de calorias no formato "(≈ 350 kcal)".
-6. Como o objetivo é emagrecimento, mantenha o total diário entre 1200 e 1500 kcal, respeitando as porções da nutricionista. Informe o total do dia no campo "total_kcal" (número).
+5. Para CADA refeição, informe a estimativa de calorias em um campo numérico separado (kcal_desjejum, kcal_lanche_manha, kcal_almoco, kcal_lanche_tarde, kcal_jantar). NÃO escreva as calorias dentro do texto da refeição.
+6. Meta de emagrecimento: o total diário deve ficar em até 1500 kcal (ideal entre 1400 e 1500). Ajuste as porções para atingir essa meta, respeitando a estrutura da nutricionista.
 7. Antes de responder, confira cada refeição: se algum alimento não está na despensa, troque-o.
 
 === ALIMENTOS PROIBIDOS (a usuária NÃO tem, NUNCA cite) ===
@@ -236,12 +236,16 @@ Retorne APENAS um JSON válido (sem comentários) no formato:
   "dias": [
     {
       "dia": 0,
-      "desjejum": "... (≈ 300 kcal)",
-      "lanche_manha": "... (≈ 80 kcal)",
-      "almoco": "... (≈ 450 kcal)",
-      "lanche_tarde": "... (≈ 80 kcal)",
-      "jantar": "... (≈ 300 kcal)",
-      "total_kcal": 1210
+      "desjejum": "...",
+      "kcal_desjejum": 350,
+      "lanche_manha": "...",
+      "kcal_lanche_manha": 100,
+      "almoco": "...",
+      "kcal_almoco": 500,
+      "lanche_tarde": "...",
+      "kcal_lanche_tarde": 100,
+      "jantar": "...",
+      "kcal_jantar": 400
     }
   ]
 }
@@ -307,12 +311,15 @@ ${JSON.stringify(parsed)}`
 
     for (const d of parsed.dias) {
       const dayIndex = d.dia === 7 ? 0 : d.dia;
-      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Desjejum', recipeText: d.desjejum })
-      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Lanche da Manhã', recipeText: d.lanche_manha })
-      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Almoço', recipeText: d.almoco })
-      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Lanche da Tarde', recipeText: d.lanche_tarde })
-      const totalText = d.total_kcal ? `\n\n🔥 Total do dia: ≈ ${d.total_kcal} kcal` : ''
-      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Jantar', recipeText: `${d.jantar}${totalText}` })
+      const k = (n: any) => (Number(n) > 0 ? Math.round(Number(n)) : 0)
+      const withK = (txt: string, n: any) => (k(n) ? `${txt}\n\n🔥 ≈ ${k(n)} kcal` : txt)
+      const total = k(d.kcal_desjejum) + k(d.kcal_lanche_manha) + k(d.kcal_almoco) + k(d.kcal_lanche_tarde) + k(d.kcal_jantar)
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Desjejum', recipeText: withK(d.desjejum, d.kcal_desjejum) })
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Lanche da Manhã', recipeText: withK(d.lanche_manha, d.kcal_lanche_manha) })
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Almoço', recipeText: withK(d.almoco, d.kcal_almoco) })
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Lanche da Tarde', recipeText: withK(d.lanche_tarde, d.kcal_lanche_tarde) })
+      const totalText = total ? `\n\n📊 Total do dia: ≈ ${total} kcal (meta: 1500 kcal)` : ''
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Jantar', recipeText: `${withK(d.jantar, d.kcal_jantar)}${totalText}` })
     }
 
     const menu = await prisma.weeklyMenu.create({

@@ -71,7 +71,7 @@ export default async function CardapioPage() {
                   {dayMeals.map(meal => (
                     <div key={meal.id} className="bg-gray-50 p-3 rounded border border-gray-100 relative group">
                       <strong className="text-emerald-700 block mb-1 text-sm">{meal.mealType}</strong>
-                      <span className="text-gray-600 text-sm block mb-8">{meal.recipeText}</span>
+                      <span className="text-gray-600 text-sm block mb-8 whitespace-pre-line">{meal.recipeText}</span>
                       
                       <form action={async () => {
                         'use server'
