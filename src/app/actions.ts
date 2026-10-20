@@ -185,34 +185,48 @@ export async function generateWeeklyMenu() {
 
   const dietGuidelines = user?.dietInstructions || defaultDiet
 
-  const prompt = `Você é um assistente culinário especializado em dietas restritas.
-A usuária não sabe cozinhar e quer um cardápio semanal VARIADO (7 dias) baseado nas diretrizes da nutricionista e no que tem na despensa.
+  const ingredientList = ingredients.map(i => `- ${i.name}`).join('\n')
 
-Diretrizes da Dieta:
+  const prompt = `Você é uma nutricionista e assistente culinária. A usuária NÃO sabe cozinhar, quer EMAGRECER e precisa de um cardápio semanal VARIADO (7 dias, domingo a sábado).
+
+=== DIRETRIZES DA NUTRICIONISTA (seguir a estrutura e as porções) ===
 ${dietGuidelines}
 
-Ingredientes disponíveis na despensa: ${ingredientNames}.
+=== DESPENSA (ÚNICOS alimentos permitidos) ===
+${ingredientList}
 
-REGRA DE OURO: Você DEVE respeitar estritamente a despensa. Se as diretrizes pedirem algo específico (ex: castanhas-do-Pará, sementes, suplementos, frutas específicas) que NÃO esteja na lista de ingredientes disponíveis na despensa, NÃO INCLUA esse item na receita. Adapte ou omita o ingrediente para que ela use apenas o que tem em casa! (Apenas se faltar algo básico de tempero/cozimento você pode deduzir).
+REGRAS OBRIGATÓRIAS:
+1. Use SOMENTE os alimentos da lista DESPENSA acima. Qualquer alimento que não esteja na lista é PROIBIDO, mesmo que a diretriz o cite (ex.: se a diretriz pede castanha, semente, uma fruta, proteína ou legume que não está na lista, NÃO use; substitua por outro item da despensa do mesmo grupo, ou omita).
+2. Exceções permitidas fora da lista: apenas água, sal, temperos secos básicos, alho, cebola, limão e azeite em pequena quantidade.
+3. Siga a estrutura de cada refeição da diretriz (ex.: almoço = salada + arroz + feijão + proteína) usando os itens da despensa que se encaixam em cada grupo.
+4. Informe as quantidades em medidas caseiras (colheres, conchas, unidades, gramas).
+5. Ao final de CADA refeição, informe a estimativa de calorias no formato "(≈ 350 kcal)".
+6. Como o objetivo é emagrecimento, mantenha o total diário entre 1200 e 1500 kcal, respeitando as porções da nutricionista. Informe o total do dia no campo "total_kcal" (número).
+7. Antes de responder, confira cada refeição: se algum alimento não está na despensa, troque-o.
 
-Retorne EXATAMENTE UM JSON no formato:
+Retorne APENAS um JSON válido (sem comentários) no formato:
 {
   "prep_semana": "Guia de Batch Cooking...",
   "dias": [
     {
-      "dia": 0, // 0 = Domingo, 1 = Segunda, 2 = Terça, 3 = Quarta, 4 = Quinta, 5 = Sexta, 6 = Sábado
-      "desjejum": "...",
-      "lanche_manha": "...",
-      "almoco": "...",
-      "lanche_tarde": "...",
-      "jantar": "..."
+      "dia": 0,
+      "desjejum": "... (≈ 300 kcal)",
+      "lanche_manha": "... (≈ 80 kcal)",
+      "almoco": "... (≈ 450 kcal)",
+      "lanche_tarde": "... (≈ 80 kcal)",
+      "jantar": "... (≈ 300 kcal)",
+      "total_kcal": 1210
     }
   ]
-}`
+}
+Onde "dia": 0 = Domingo, 1 = Segunda, ..., 6 = Sábado. Gere os 7 dias.`
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: { temperature: 0.4, responseMimeType: 'application/json' },
+    })
     
     let text = ''
     let attempts = 0
@@ -253,7 +267,8 @@ Retorne EXATAMENTE UM JSON no formato:
       mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Lanche da Manhã', recipeText: d.lanche_manha })
       mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Almoço', recipeText: d.almoco })
       mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Lanche da Tarde', recipeText: d.lanche_tarde })
-      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Jantar', recipeText: d.jantar })
+      const totalText = d.total_kcal ? `\n\n🔥 Total do dia: ≈ ${d.total_kcal} kcal` : ''
+      mealsToCreate.push({ dayOfWeek: dayIndex, mealType: 'Jantar', recipeText: `${d.jantar}${totalText}` })
     }
 
     const menu = await prisma.weeklyMenu.create({
