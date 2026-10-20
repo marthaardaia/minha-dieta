@@ -253,23 +253,33 @@ Onde "dia": 0 = Domingo, 1 = Segunda, ..., 6 = Sábado. Gere os 7 dias.`
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      generationConfig: { temperature: 0.4, responseMimeType: 'application/json' },
-    })
+    const candidateModels = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
     
     const callModel = async (p: string) => {
-      let attempts = 0
-      while (true) {
-        try {
-          const result = await model.generateContent(p)
-          return result.response.text()
-        } catch (e: any) {
-          attempts++
-          if (attempts >= 3 || !String(e.message).includes('503')) throw e
-          await new Promise(resolve => setTimeout(resolve, 2000))
+      let lastError: any = null
+      for (const modelName of candidateModels) {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          generationConfig: { temperature: 0.4, responseMimeType: 'application/json' },
+        })
+        let attempts = 0
+        while (attempts < 3) {
+          try {
+            const result = await model.generateContent(p)
+            return result.response.text()
+          } catch (e: any) {
+            lastError = e
+            attempts++
+            const msg = String(e?.message || '')
+            if (msg.includes('503') || msg.includes('429')) {
+              await new Promise(resolve => setTimeout(resolve, 1500))
+              continue
+            }
+            break // try next candidate model if 404 or other non-retryable error
+          }
         }
       }
+      throw lastError || new Error("Falha ao comunicar com os modelos do Gemini.")
     }
 
     const parseJson = (text: string) => {
